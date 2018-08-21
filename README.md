@@ -1,4 +1,4 @@
-#word_representations_fasttext
+# word_representations_fasttext
 A word representations base on fasttext
 
 ## setup

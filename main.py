@@ -10,7 +10,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 # model = FastText('source/wiki_seg.txt', size=4, window=3, min_count=1, iter=10)
 # model.save('source/word2vec.model')
 
-wiki_model = NN('source/model.bin')
+wiki_model = NN()
 model = gensim.models.KeyedVectors.load_word2vec_format('source/model.vec')
 
 @app.route('/gensim_single_text', methods = ['POST'])

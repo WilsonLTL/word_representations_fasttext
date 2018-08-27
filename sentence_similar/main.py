@@ -41,7 +41,7 @@ def insert_record():
                 result["pharse"].append({"training_phrases":train_phrase,"check_phrases":intents})
             item["intents"].append(result)
         agent_item.set(item)
-        write_json_db(str(system_id)+","+str(agent["agent_id"], item))
+        serve_init()
     return jsonify(item)
 
 

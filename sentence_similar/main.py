@@ -1,4 +1,4 @@
-import jieba,gensim,ast,random,firebase_admin,json
+import jieba,gensim,ast,random,firebase_admin,json,os,shutil
 from FastTextNN import NNLookup as NN
 from flask import Flask,jsonify,request
 from firebase_admin import credentials, firestore
@@ -14,38 +14,23 @@ with open('jieba_dict/stopwords.txt', 'r', encoding='utf-8') as stopwords:
         stopword_set.add(stopword.strip('\n'))
 
 
-@app.route('/insert_update_record', methods=['POST'])
-def insert_record():
+@app.route('/create_agent', methods=['POST'])
+def create_agent():
     system_id = request.json['system_id']
     agents = request.json['agent']
     system = db.collection('agents')
-
-    for agent in agents:
-        item = {
-            "agent_id": agent["agent_id"],
-            "agent_name": agent["agent_name"],
-            "intents": []
-        }
-        agent_item = system.document(str(system_id)+","+str(agent["agent_id"]))
-        for intent in agent["intents"]:
-            result = {
-                    "intent_name": intent['intent_name'],
-                    "pharse":[],
-                    "response_text": intent['response_text'],
-                }
-            for train_phrase in intent["training_phrases"]:
-                intents = []
-                cut_text = jieba_cut(train_phrase)
-                for ct in cut_text:
-                    intents.append(ct)
-                result["pharse"].append({"training_phrases":train_phrase,"check_phrases":intents})
-            item["intents"].append(result)
-        agent_item.set(item)
-        serve_init()
-    return jsonify(item)
+    return jsonify(insert_update_record(system_id,agents,system))
 
 
-@app.route('/check_similar_by_agent', methods=['POST'])
+@app.route('/update_agent', methods=['POST'])
+def update_agent():
+    system_id = request.json['system_id']
+    agents = request.json['agent']
+    system = db.collection('agents')
+    return jsonify(insert_update_record(system_id, agents, system))
+
+
+@app.route('/sub_agent', methods=['POST'])
 def check_similar_by_agent():
     system_id = request.json['system_id']
     agent_id = request.json['agent_id']
@@ -87,12 +72,94 @@ def check_similar_by_agent():
         return jsonify({"Success":False})
 
 
+@app.route('/list_all_system_id', methods=['POST'])
+def list_all_system_id():
+    system_id = os.listdir('database')
+    id_list = []
+    for item in system_id:
+        if item != ".DS_Store":
+            id_list.append(item)
+    return jsonify({
+        "system_id": id_list
+    })
+
+
+@app.route('/list_user_by_system_id', methods=['POST'])
+def list_user_by_system_id():
+    result = {
+        "result":[]
+    }
+    system_id = request.json['system_id']
+    try:
+        agents = os.listdir('database/'+str(system_id))
+    except FileNotFoundError as e:
+        return jsonify({"status":False,"exception":str(e)})
+    for agent in agents:
+        agent_info = {
+            "agent_id": "",
+            "agent_name": "",
+            "intents": []
+        }
+        data = load_json_db(system_id+","+agent.split(".")[0])
+        agent_info["agent_id"] = data["agent_id"]
+        agent_info["agent_name"] = data["agent_name"]
+        for intent in data["intents"]:
+            item = {
+                "intent_name": intent["intent_name"],
+                "training_phrases": [],
+                "response_text": intent["response_text"]
+            }
+            for pharse in intent["pharse"]:
+                item["training_phrases"].append(pharse["training_phrases"])
+            agent_info["intents"].append(item)
+        result["result"].append(agent_info)
+    return jsonify(result)
+
+
+@app.route('/delete_agent', methods=['POST'])
+def delete_agent():
+    try:
+        system_id = request.json["system_id"]
+        agent_id = request.json["agent_id"]
+        db.collection('agents').document(str(system_id)+","+str(agent_id)).delete()
+        serve_init()
+        return jsonify({"status":True})
+    except Exception as e:
+        return jsonify({"status":False,"exception":e})
+
+
 @app.route('/sentence_similar',methods=['POST'])
 def sentence_similar():
     test_text1 = request.json['text1']
     test_text2 = request.json['text2']
     result = check_sentence_similar(test_text1,test_text2)
     return jsonify(result)
+
+
+def insert_update_record(system_id,agents,system):
+    for agent in agents:
+        item = {
+            "agent_id": agent["agent_id"],
+            "agent_name": agent["agent_name"],
+            "intents": []
+        }
+        agent_item = system.document(str(system_id)+","+str(agent["agent_id"]))
+        for intent in agent["intents"]:
+            result = {
+                    "intent_name": intent['intent_name'],
+                    "pharse":[],
+                    "response_text": intent['response_text'],
+                }
+            for train_phrase in intent["training_phrases"]:
+                intents = []
+                cut_text = jieba_cut(train_phrase)
+                for ct in cut_text:
+                    intents.append(ct)
+                result["pharse"].append({"training_phrases":train_phrase,"check_phrases":intents})
+            item["intents"].append(result)
+        agent_item.set(item)
+        serve_init()
+    return item
 
 
 def jieba_cut(text):
@@ -139,7 +206,19 @@ def check_sentence_similar(test_text1,test_text2):
             }
 
 
+def reset_folder():
+    folder = 'database'
+    for the_file in os.listdir(folder):
+        file_path = os.path.join(folder, the_file)
+        try:
+            shutil.rmtree(file_path, ignore_errors=True)
+            print("unlink:",file_path)
+        except Exception as e:
+            print(e)
+
+
 def serve_init():
+    reset_folder()
     agents = db.collection('agents')
     agents = agents.get()
     for agent in agents:
@@ -150,13 +229,21 @@ def serve_init():
 
 
 def load_json_db(filename):
-    with open('database/'+filename+'.json') as f:
+    system_id = filename.split(',')[0]
+    agent_id = filename.split(',')[1]
+    with open('database/' + system_id + "/" + agent_id+'.json') as f:
         data = json.load(f)
         return data
 
 
 def write_json_db(name, data):
-    with open('database/' + name + '.json', 'w') as outfile:
+    system_id = name.split(',')[0]
+    agent_id = name.split(',')[1]
+    try:
+        os.makedirs("database/"+system_id)
+    except FileExistsError as e:
+        print('Exist system_id:', system_id)
+    with open('database/'+system_id + "/" + agent_id + '.json', 'w') as outfile:
         json.dump(data, outfile)
 
 

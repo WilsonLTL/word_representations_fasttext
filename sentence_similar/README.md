@@ -18,6 +18,7 @@ To make sure the system run, please modify the soure/fasttext-milk-tea, which is
 10. sudo pip3 install -r requirements.txt
 PS: remember install git
 ```
+Then run the main.py in sentence_similar folder
 
 ## database structure
 agents <br >

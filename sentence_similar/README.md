@@ -4,6 +4,21 @@ A NLP system basic on word_representation_fasttext
 ## setup
 To make sure the system run, please modify the soure/fasttext-milk-tea, which is the google credentials to connect the firestore
 
+## EBS setup
+```
+1. python3 --version, sudo -s
+2. sudo yum install python34
+3. curl -O https://bootstrap.pypa.io/get-pip.py
+4. sudo python3 get-pip.py
+5. export PATH=~/.local/bin:$PATH
+6. source ~/.bash_profile
+7. clone the code, cd into sentence_simialr
+8. sudo pip3 install Cython
+9. sudo yum install gcc-c++
+10. sudo pip3 install -r requirements.txt
+PS: remember install git
+```
+
 ## database structure
 agents <br >
 -system_id, agent_id <br >

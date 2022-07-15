@@ -50,7 +50,7 @@ dask==0.15.3
 datashape==0.5.4
 decorator==4.2.1
 dialogflow==0.1.0
-distributed==1.19.1
+distributed==2021.10.0
 dlib==19.13.1
 docker==3.3.0
 docker-compose==1.21.2

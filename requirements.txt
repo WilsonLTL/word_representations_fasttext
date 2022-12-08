@@ -29,7 +29,7 @@ bz2file==0.98
 cached-property==1.4.2
 cachetools==2.0.1
 cement==2.8.2
-certifi==2018.1.18
+certifi==2022.12.7
 cffi==1.10.0
 chardet==3.0.4
 chatbase==0.2.1
